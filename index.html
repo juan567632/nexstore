@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NexStore - Tienda</title>
+    <style>
+        :root { 
+            --bg-main: #020617; 
+            --bg-card: #0f172a; 
+            --primary: #3b82f6; 
+            --primary-hover: #2563eb;
+            --text-main: #f8fafc; 
+            --text-muted: #94a3b8; 
+            --border: #1e293b;
+        }
+        
+        body { font-family: system-ui, -apple-system, sans-serif; margin: 0; background-color: var(--bg-main); color: var(--text-main); }
+        
+        nav { display: flex; justify-content: space-between; align-items: center; padding: 1.5rem; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 1rem; position: sticky; top: 0; z-index: 100; }
+        .logo { margin: 0; color: var(--text-main); font-size: 1.5rem; letter-spacing: -0.05em; }
+        .logo span { color: var(--primary); }
+        
+        .nav-controls { display: flex; align-items: center; gap: 1rem; }
+        .select-input { padding: 0.5rem 1rem; border: 1px solid var(--border); border-radius: 0.5rem; background: var(--bg-main); color: var(--text-main); cursor: pointer; font-weight: bold; outline: none; }
+        .select-input:focus { border-color: var(--primary); }
+        
+        .btn { background-color: var(--primary); color: white; padding: 0.5rem 1.25rem; text-decoration: none; border-radius: 0.5rem; border: none; cursor: pointer; font-weight: bold; transition: background 0.3s, transform 0.1s; }
+        .btn:hover { background-color: var(--primary-hover); }
+        .btn:active { transform: scale(0.98); }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-main); }
+        .btn-outline:hover { border-color: var(--primary); background: rgba(59, 130, 246, 0.1); }
+        
+        header { text-align: center; padding: 6rem 1rem; background: linear-gradient(135deg, #020617 0%, #1e3a8a 100%); border-bottom: 1px solid var(--border); }
+        header h1 { font-size: 3rem; margin-bottom: 0.5rem; letter-spacing: -0.02em; }
+        header p { color: #bfdbfe; font-size: 1.25rem; margin-top: 0; }
+        
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem; padding: 3rem 2rem; max-width: 1200px; margin: 0 auto; }
+        
+        .card { background: var(--bg-card); padding: 1rem; border-radius: 1rem; border: 1px solid var(--border); text-align: left; transition: transform 0.3s, box-shadow 0.3s; }
+        .card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5); border-color: var(--primary); }
+        .card img { width: 100%; height: 200px; object-fit: cover; border-radius: 0.75rem; margin-bottom: 1rem; background-color: var(--bg-main); }
+        .card h3 { margin: 0; font-size: 1.1rem; color: var(--text-main); }
+        .card .price { color: var(--primary); font-weight: bold; font-size: 1.25rem; margin: 0.5rem 0 1.5rem 0; }
+        
+        .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 999; }
+        .cart-modal { display: none; position: fixed; top: 0; right: 0; width: 400px; max-width: 100%; height: 100vh; background: var(--bg-card); border-left: 1px solid var(--border); padding: 2rem; box-sizing: border-box; overflow-y: auto; z-index: 1000; box-shadow: -10px 0 25px rgba(0,0,0,0.5); }
+        .active { display: block; }
+        
+        .cart-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 1rem; }
+        .cart-item img { width: 50px; height: 50px; object-fit: cover; border-radius: 0.5rem; border: 1px solid var(--border); }
+        .cart-item strong { color: var(--text-main); }
+        .cart-item small { color: var(--text-muted); }
+        .remove-btn { background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid transparent; border-radius: 0.25rem; padding: 0.25rem 0.5rem; cursor: pointer; transition: 0.2s; }
+        .remove-btn:hover { background: #ef4444; color: white; }
+
+        /* Estilo para la sección de métodos de pago */
+        .payment-section { margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }
+        .payment-section label { display: block; color: var(--text-muted); margin-bottom: 0.5rem; font-size: 0.875rem; }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <h2 class="logo">Nex<span>Store</span></h2>
+        <div class="nav-controls">
+            <select id="currency-selector" class="select-input" onchange="changeCurrency()">
+                <option value="COP">🇨🇴 COP</option>
+                <option value="USD">🇺🇸 USD</option>
+                <option value="EUR">🇪🇺 EUR</option>
+                <option value="MXN">🇲🇽 MXN</option>
+            </select>
+
+            <button class="btn btn-outline" onclick="toggleCart()">
+                🛒 <span id="cart-count">0</span>
+            </button>
+            <a href="admin.html" class="btn">Admin</a>
+        </div>
+    </nav>
+
+    <div class="overlay" id="overlay" onclick="toggleCart()"></div>
+    <div class="cart-modal" id="cart-modal">
+        <h2 style="margin-top: 0; border-bottom: 1px solid var(--border); padding-bottom: 1rem;">Tu Carrito</h2>
+        <div id="cart-items-container"></div>
+        
+        <div class="payment-section">
+            <h3 style="margin-top: 0; font-size: 1.5rem;">Total: <span id="cart-total" style="color: var(--primary);">0</span></h3>
+            
+            <label>Selecciona tu método de pago:</label>
+            <select id="payment-method" class="select-input" style="width: 100%; margin-bottom: 1rem;">
+                <option value="📱 Nequi / Daviplata">📱 Nequi / Daviplata</option>
+                <option value="🏦 Transferencia Bancaria">🏦 Transferencia Bancaria</option>
+                <option value="💵 Efectivo (Contra Entrega)">💵 Efectivo (Contra Entrega)</option>
+            </select>
+        </div>
+
+        <button class="btn" style="width: 100%; padding: 1rem; font-size: 1.1rem;" onclick="checkout()">Enviar Pedido por WhatsApp</button>
+        <button class="btn btn-outline" style="width: 100%; margin-top: 0.5rem; padding: 1rem;" onclick="toggleCart()">Seguir Comprando</button>
+    </div>
+
+    <header>
+        <h1>Equipamiento del Futuro</h1>
+        <p>Tecnología y estilo con envío gratis a todo el país.</p>
+    </header>
+
+    <main class="grid" id="product-list"></main>
+
+    <script>
+        const exchangeRates = {
+            'COP': { rate: 1, symbol: '$', decimals: 0 },
+            'USD': { rate: 1 / 4150, symbol: '$', decimals: 2 },
+            'EUR': { rate: 1 / 4500, symbol: '€', decimals: 2 },
+            'MXN': { rate: 1 / 225, symbol: '$', decimals: 2 }
+        };
+
+        let currentCurrency = localStorage.getItem('nexstore_currency') || 'COP';
+        document.getElementById('currency-selector').value = currentCurrency;
+
+        function formatPrice(priceInCOP) {
+            const currencyData = exchangeRates[currentCurrency];
+            const convertedPrice = priceInCOP * currencyData.rate;
+            
+            if (currencyData.decimals === 0) {
+                return `${currencyData.symbol}${parseInt(convertedPrice).toLocaleString('es-CO')} ${currentCurrency}`;
+            } else {
+                return `${currencyData.symbol}${convertedPrice.toFixed(2)} ${currentCurrency}`;
+            }
+        }
+
+        function changeCurrency() {
+            const selector = document.getElementById('currency-selector');
+            currentCurrency = selector.value;
+            localStorage.setItem('nexstore_currency', currentCurrency);
+            loadProducts();
+            updateCartUI();
+        }
+
+        const defaultProducts = [
+            { id: 1, name: 'Auriculares Inalámbricos', price: 400000, image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300&q=80' },
+            { id: 2, name: 'Reloj Inteligente', price: 600000, image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=300&q=80' },
+            { id: 3, name: 'Mochila Urbana', price: 240000, image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=300&q=80' },
+            { id: 4, name: 'Gafas de Sol', price: 160000, image: 'https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=300&q=80' }
+        ];
+
+        let products = [];
+        let cart = [];
+
+        try {
+            const storedProducts = JSON.parse(localStorage.getItem('nexstore_products'));
+            if (Array.isArray(storedProducts) && storedProducts.length > 0) {
+                products = storedProducts;
+            } else { throw new Error("Vacío"); }
+        } catch (e) {
+            products = defaultProducts;
+            localStorage.setItem('nexstore_products', JSON.stringify(products));
+        }
+
+        try {
+            const storedCart = JSON.parse(localStorage.getItem('nexstore_cart'));
+            if (Array.isArray(storedCart)) { cart = storedCart; } 
+            else { throw new Error("Corrupto"); }
+        } catch (e) {
+            cart = [];
+            localStorage.setItem('nexstore_cart', JSON.stringify(cart));
+        }
+
+        function loadProducts() {
+            const container = document.getElementById('product-list');
+            container.innerHTML = ''; 
+            
+            if (products.length === 0) {
+                container.innerHTML = '<p style="text-align: center; grid-column: 1 / -1; color: var(--text-muted);">No hay productos disponibles.</p>';
+                return;
+            }
+
+            products.forEach(product => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                    <img src="${product.image}" alt="${product.name}">
+                    <h3>${product.name}</h3>
+                    <p class="price">${formatPrice(product.price)}</p>
+                    <button class="btn" onclick="addToCart(${product.id})" style="width: 100%;">
+                        Añadir al Carrito
+                    </button>
+                `;
+                container.appendChild(card);
+            });
+            updateCartUI(); 
+        }
+
+        function addToCart(productId) {
+            const product = products.find(p => p.id === productId);
+            if (!product) return;
+
+            const existingItem = cart.find(item => item.id === productId);
+            if (existingItem) { existingItem.quantity += 1; } 
+            else { cart.push({ ...product, quantity: 1 }); }
+            
+            saveCart();
+            const modal = document.getElementById('cart-modal');
+            if (!modal.classList.contains('active')) { toggleCart(); }
+        }
+
+        function removeFromCart(productId) {
+            cart = cart.filter(item => item.id !== productId);
+            saveCart();
+        }
+
+        function saveCart() {
+            localStorage.setItem('nexstore_cart', JSON.stringify(cart));
+            updateCartUI();
+        }
+
+        function updateCartUI() {
+            const container = document.getElementById('cart-items-container');
+            const countLabel = document.getElementById('cart-count');
+            const totalLabel = document.getElementById('cart-total');
+            
+            container.innerHTML = ''; 
+            let totalCOP = 0; 
+            let totalItems = 0;
+
+            if (cart.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-muted);">Tu carrito está vacío.</p>';
+            } else {
+                cart.forEach(item => {
+                    totalCOP += item.price * item.quantity; 
+                    totalItems += item.quantity;
+                    
+                    const div = document.createElement('div');
+                    div.className = 'cart-item';
+                    div.innerHTML = `
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="${item.image}">
+                            <div>
+                                <strong>${item.name}</strong><br>
+                                <small>${formatPrice(item.price)} x ${item.quantity}</small>
+                            </div>
+                        </div>
+                        <button class="remove-btn" onclick="removeFromCart(${item.id})">✕</button>
+                    `;
+                    container.appendChild(div);
+                });
+            }
+
+            countLabel.innerText = totalItems;
+            totalLabel.innerText = formatPrice(totalCOP);
+        }
+
+        function toggleCart() {
+            document.getElementById('cart-modal').classList.toggle('active');
+            document.getElementById('overlay').classList.toggle('active');
+        }
+
+        // --- NUEVA FUNCIÓN DE CHECKOUT POR WHATSAPP ---
+        function checkout() {
+            if(cart.length === 0) {
+                alert("El carrito está vacío. Agrega productos antes de pagar.");
+                return;
+            }
+
+            // 1. Aquí debes poner el número de WhatsApp de tu tienda (con el 57 de Colombia)
+            const numeroWhatsApp = "573000000000"; 
+            
+            // 2. Obtener el método de pago seleccionado
+            const metodoPago = document.getElementById('payment-method').value;
+            
+            // 3. Crear el mensaje
+            let totalCOP = 0;
+            let mensaje = `*¡Hola! Quiero realizar un pedido en NexStore* 🛒\n\n`;
+            mensaje += `*Detalle de mi compra:*\n`;
+
+            cart.forEach(item => {
+                totalCOP += item.price * item.quantity;
+                mensaje += `▪️ ${item.quantity}x ${item.name} (${formatPrice(item.price)})\n`;
+            });
+
+            mensaje += `\n*Total a pagar:* ${formatPrice(totalCOP)}`;
+            mensaje += `\n*Método de pago preferido:* ${metodoPago}`;
+            mensaje += `\n\n_Por favor confírmame los datos para realizar el pago._`;
+
+            // 4. Crear el enlace a WhatsApp y abrirlo
+            const url = `https://wa.me/${numeroWhatsApp}?text=${encodeURIComponent(mensaje)}`;
+            window.open(url, '_blank');
+
+            // 5. Limpiar el carrito después de enviar el pedido
+            cart = [];
+            saveCart();
+            toggleCart();
+        }
+
+        loadProducts();
+    </script>
+</body>
+</html>

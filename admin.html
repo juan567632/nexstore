@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin - NexStore</title>
+    <style>
+        body { font-family: system-ui, sans-serif; margin: 0; display: flex; height: 100vh; background-color: #020617; color: #f8fafc; }
+        aside { width: 250px; background-color: #020617; border-right: 1px solid #1e293b; display: flex; flex-direction: column; }
+        aside h2 { padding: 1.5rem; color: #3b82f6; }
+        aside a { color: #94a3b8; text-decoration: none; padding: 1rem 1.5rem; display: block; }
+        main { flex: 1; padding: 2rem; overflow-y: auto; }
+        .panel-card { background: #0f172a; padding: 1.5rem; border-radius: 1rem; border: 1px solid #1e293b; margin-bottom: 2rem; }
+        .btn { background-color: #3b82f6; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 0.5rem; cursor: pointer; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+        th, td { text-align: left; padding: 1rem; border-bottom: 1px solid #1e293b; }
+        .img-preview { width: 50px; height: 50px; object-fit: cover; border-radius: 0.5rem; }
+        /* Modal */
+        .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 999; }
+        .modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #0f172a; padding: 2rem; border-radius: 1rem; z-index: 1000; border: 1px solid #3b82f6; }
+        .active { display: block; }
+    </style>
+</head>
+<body>
+
+    <aside>
+        <h2>NexStore Admin</h2>
+        <a href="index.html">← Volver a la Tienda</a>
+    </aside>
+
+    <main>
+        <h1>Panel de Control</h1>
+        <div class="panel-card">
+            <h3>Añadir Producto</h3>
+            <form id="add-product-form">
+                <input type="text" id="prod-name" placeholder="Nombre" required>
+                <input type="number" id="prod-price" placeholder="Precio COP" required>
+                <input type="file" id="prod-image" accept="image/*" required>
+                <button type="submit" class="btn">Guardar</button>
+            </form>
+        </div>
+
+        <div class="panel-card">
+            <h3>Lista de Productos</h3>
+            <table>
+                <thead><tr><th>Imagen</th><th>Nombre</th><th>Precio</th><th>Acciones</th></tr></thead>
+                <tbody id="admin-product-list"></tbody>
+            </table>
+        </div>
+    </main>
+
+    <div class="overlay" id="edit-overlay" onclick="closeEditModal()"></div>
+    <div class="modal" id="edit-modal">
+        <h3>Editar Producto</h3>
+        <form id="edit-product-form">
+            <input type="hidden" id="edit-id">
+            <input type="text" id="edit-name" required>
+            <input type="number" id="edit-price" required>
+            <input type="file" id="edit-image" accept="image/*">
+            <button type="submit" class="btn">Actualizar</button>
+            <button type="button" class="btn" onclick="closeEditModal()" style="background:#444">Cancelar</button>
+        </form>
+    </div>
+
+    <script>
+        let products = JSON.parse(localStorage.getItem('nexstore_products')) || [];
+
+        function renderAdminProducts() {
+            const tbody = document.getElementById('admin-product-list');
+            tbody.innerHTML = '';
+            products.forEach(p => {
+                tbody.innerHTML += `<tr>
+                    <td><img src="${p.image}" class="img-preview"></td>
+                    <td>${p.name}</td>
+                    <td>$${p.price.toLocaleString()} COP</td>
+                    <td>
+                        <button onclick="openEditModal(${p.id})" class="btn" style="background:#f59e0b">Editar</button>
+                        <button onclick="deleteProduct(${p.id})" class="btn" style="background:#ef4444">Borrar</button>
+                    </td>
+                </tr>`;
+            });
+        }
+
+        document.getElementById('add-product-form').onsubmit = (e) => {
+            e.preventDefault();
+            const file = document.getElementById('prod-image').files[0];
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                products.push({ id: Date.now(), name: document.getElementById('prod-name').value, price: Number(document.getElementById('prod-price').value), image: ev.target.result });
+                localStorage.setItem('nexstore_products', JSON.stringify(products));
+                renderAdminProducts();
+            };
+            reader.readAsDataURL(file);
+        };
+
+        function openEditModal(id) {
+            const p = products.find(x => x.id === id);
+            document.getElementById('edit-id').value = p.id;
+            document.getElementById('edit-name').value = p.name;
+            document.getElementById('edit-price').value = p.price;
+            document.getElementById('edit-modal').classList.add('active');
+            document.getElementById('edit-overlay').classList.add('active');
+        }
+
+        function closeEditModal() {
+            document.getElementById('edit-modal').classList.remove('active');
+            document.getElementById('edit-overlay').classList.remove('active');
+        }
+
+        document.getElementById('edit-product-form').onsubmit = (e) => {
+            e.preventDefault();
+            const id = Number(document.getElementById('edit-id').value);
+            const p = products.find(x => x.id === id);
+            p.name = document.getElementById('edit-name').value;
+            p.price = Number(document.getElementById('edit-price').value);
+            const file = document.getElementById('edit-image').files[0];
+            
+            if(file) {
+                const reader = new FileReader();
+                reader.onload = (ev) => { p.image = ev.target.result; saveAndRender(); };
+                reader.readAsDataURL(file);
+            } else { saveAndRender(); }
+        };
+
+        function saveAndRender() {
+            localStorage.setItem('nexstore_products', JSON.stringify(products));
+            renderAdminProducts();
+            closeEditModal();
+        }
+
+        function deleteProduct(id) {
+            products = products.filter(x => x.id !== id);
+            saveAndRender();
+        }
+
+        renderAdminProducts();
+    </script>
+</body>
+</html>
