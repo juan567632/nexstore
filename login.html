@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>SHOPSTRAMING - Acceso</title>
+    <style>
+        body { font-family: system-ui; background: #020617; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .card { background: #0f172a; padding: 2rem; border-radius: 1rem; border: 1px solid #3b82f6; width: 320px; text-align: center; }
+        input { width: 100%; padding: 0.75rem; margin: 0.5rem 0; background: #020617; border: 1px solid #1e293b; color: white; border-radius: 0.5rem; box-sizing: border-box; }
+        button { width: 100%; padding: 0.75rem; border: none; color: white; border-radius: 0.5rem; cursor: pointer; font-weight: bold; margin-top: 0.5rem; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>SHOPSTRAMING</h2>
+        <input type="text" id="user" placeholder="Usuario">
+        <input type="password" id="pass" placeholder="Contraseña">
+        <button onclick="login()" style="background:#3b82f6">Ingresar</button>
+        <hr style="border:0; border-top:1px solid #1e293b; margin:1.5rem 0;">
+        <p>¿Nuevo cliente?</p>
+        <input type="text" id="new-user" placeholder="Usuario">
+        <input type="password" id="new-pass" placeholder="Contraseña">
+        <button onclick="register()" style="background:#10b981">Registrarse</button>
+    </div>
+    <script>
+        if(!localStorage.getItem('nexstore_users')) {
+            localStorage.setItem('nexstore_users', JSON.stringify([{id:1, name:'admin', pass:'1234', role:'admin', active:true}]));
+        }
+        function login() {
+            const users = JSON.parse(localStorage.getItem('nexstore_users'));
+            const user = users.find(x => x.name === document.getElementById('user').value && x.pass === document.getElementById('pass').value);
+            if (user && user.active) {
+                localStorage.setItem('currentUser', JSON.stringify(user));
+                window.location.href = user.role === 'admin' ? 'admin.html' : 'index.html';
+            } else { alert("Acceso denegado: Usuario incorrecto o pendiente de activación."); }
+        }
+        function register() {
+            let users = JSON.parse(localStorage.getItem('nexstore_users'));
+            const name = document.getElementById('new-user').value;
+            const pass = document.getElementById('new-pass').value;
+            if(!name || !pass) return alert("Completa los campos");
+            users.push({id: Date.now(), name, pass, role: 'user', active: false});
+            localStorage.setItem('nexstore_users', JSON.stringify(users));
+            alert("Registro exitoso. Espera a que el administrador apruebe tu cuenta.");
+        }
+    </script>
+</body>
+</html>
